@@ -37,6 +37,12 @@ export const PUT = handler(async (req) => {
       patch.hourlyRate = r;
     }
   }
+  if (body.employeeName !== undefined) {
+    if (typeof body.employeeName !== "string" || body.employeeName.length > 100) {
+      return error("employeeName must be a string of at most 100 characters");
+    }
+    patch.employeeName = body.employeeName.trim();
+  }
   if (body.timezone !== undefined) {
     if (typeof body.timezone !== "string" || !isValidTimezone(body.timezone)) {
       return error("timezone must be a valid IANA zone, e.g. America/Chicago");

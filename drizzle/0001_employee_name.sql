@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "employee_name" text DEFAULT '' NOT NULL;

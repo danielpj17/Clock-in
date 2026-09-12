@@ -84,6 +84,9 @@ body {
 @utility btn-secondary {
   @apply btn bg-surface-2 text-text border border-border;
 }
+@utility btn-nav {
+  @apply btn-secondary h-10 w-10 p-0 text-2xl leading-none;
+}
 @utility btn-danger {
   @apply btn bg-transparent text-danger border border-danger/40;
 }

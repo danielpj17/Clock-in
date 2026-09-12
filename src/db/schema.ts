@@ -40,6 +40,8 @@ export const settings = pgTable("settings", {
   periodAnchor: date("period_anchor").notNull().default("2026-08-31"),
   periodLengthDays: integer("period_length_days").notNull().default(14),
   hourlyRate: numeric("hourly_rate", { precision: 10, scale: 2 }),
+  // Shown under the period title on exported timesheets.
+  employeeName: text("employee_name").notNull().default(""),
   timezone: text("timezone").notNull().default("America/Denver"),
   // Visible hour range on the week grid (0–24)
   dayStartHour: integer("day_start_hour").notNull().default(6),

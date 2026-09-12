@@ -22,18 +22,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SecretGate>
-      <div className="flex min-h-dvh flex-col safe-top">
-        <main className="flex-1 px-4 pb-24 pt-3">{children}</main>
-        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur safe-bottom">
-          <ul className="mx-auto flex max-w-3xl">
+      <div className="flex min-h-dvh flex-col safe-top md:flex-row">
+        {/* Sidebar on wide screens, bottom tab bar on phones */}
+        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur safe-bottom md:sticky md:top-0 md:bottom-auto md:inset-x-auto md:h-dvh md:w-24 md:shrink-0 md:border-r md:border-t-0 md:pt-4">
+          <ul className="mx-auto flex max-w-3xl md:flex-col md:gap-1 md:px-2">
             {NAV.map(({ href, label, icon: Icon }) => {
               const active = pathname === href;
               return (
-                <li key={href} className="flex-1">
+                <li key={href} className="flex-1 md:flex-none">
                   <Link
                     href={href}
-                    className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
-                      active ? "text-accent" : "text-muted"
+                    className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium md:rounded-lg md:py-3 ${
+                      active ? "text-accent md:bg-accent-soft/60" : "text-muted md:hover:bg-surface-2"
                     }`}
                   >
                     <Icon />
@@ -44,6 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </ul>
         </nav>
+        <main className="flex-1 px-4 pb-24 pt-3 md:pb-6">{children}</main>
       </div>
     </SecretGate>
   );

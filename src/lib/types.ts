@@ -5,6 +5,7 @@ export interface AppSettings {
   periodAnchor: string;
   periodLengthDays: number;
   hourlyRate: number | null;
+  employeeName: string;
   timezone: string;
   dayStartHour: number;
   dayEndHour: number;

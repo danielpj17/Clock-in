@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { durationMs, fmtDuration, fmtHours, isValidShiftRange, splitShiftByDay, type Shift } from "../hours";
 import { periodFor } from "../periods";
-import { buildReport, toCSV, toText, toTSV } from "../report";
+import { buildReport, toCSV, toHTML, toSheet, toText, toTSV } from "../report";
 
 const tz = "America/Chicago";
 const s = { periodAnchor: "2026-08-31", periodLengthDays: 14 };
@@ -60,25 +60,80 @@ describe("report", () => {
     expect(r.rows[0]).toMatchObject({ dateLabel: "09/07/2026", inLabel: "9:00 AM", outLabel: "12:00 PM", hours: "3.00" });
   });
 
+  it("sheet lays out title, name, summary boxes and the shift table", () => {
+    const sheet = toSheet(buildReport(shifts, period, tz, 25), "Daniel Johnson");
+    expect(sheet.title).toBe("Aug 31 - Sep 13, 2026");
+    expect(sheet.rows[0][0]).toMatchObject({ text: "Aug 31 - Sep 13, 2026", bold: true });
+    expect(sheet.rows[1][0]).toMatchObject({ text: "Daniel Johnson", bold: true });
+    expect(sheet.rows[3][0]).toMatchObject({ text: "Employee Summary", bold: true });
+    expect(sheet.rows[3][3]).toMatchObject({ text: "Employer Payment", bold: true });
+    expect(sheet.rows[4].slice(0, 2)).toMatchObject([{ text: "Rate" }, { text: "25.00", n: 25, format: "rate" }]);
+    expect(sheet.rows[5].slice(0, 2)).toMatchObject([{ text: "Total Hours" }, { text: "7.00", n: 7 }]);
+    expect(sheet.rows[6].slice(0, 2)).toMatchObject([{ text: "Total Amount" }, { text: "$175.00", n: 175, format: "money" }]);
+    expect(sheet.rows[4][3]).toMatchObject({ text: "Payment Status" });
+    expect(sheet.rows[8].map((c) => c?.text)).toEqual(["Date", "Clock in", "Clock out", "Hours", "Description"]);
+    expect(sheet.rows[9]).toMatchObject([
+      { text: "9/7/2026", format: "date", n: 46272 },
+      { text: "9:00 AM", format: "time", n: 0.375 },
+      { text: "12:00 PM", format: "time", n: 0.5 },
+      { text: "3.00", n: 3 },
+      { text: "Built login page" },
+    ]);
+  });
+
+  it("sheet outlines are drawn only on the box edges", () => {
+    const sheet = toSheet(buildReport(shifts, period, tz, 25));
+    // Employee Summary box: A5:B7
+    expect(sheet.rows[4][0]!.border).toEqual({ top: true, left: true });
+    expect(sheet.rows[5][0]!.border).toEqual({ left: true });
+    expect(sheet.rows[6][1]!.border).toEqual({ bottom: true, right: true });
+    // Employer Payment box: D5:E7
+    expect(sheet.rows[4][4]!.border).toEqual({ top: true, right: true });
+    // Header row: A9:E9
+    expect(sheet.rows[8][0]!.border).toEqual({ top: true, bottom: true, left: true });
+    expect(sheet.rows[8][2]!.border).toEqual({ top: true, bottom: true });
+    expect(sheet.rows[9][0]!.border).toBeUndefined();
+  });
+
+  it("blank rate leaves the money cells empty", () => {
+    const sheet = toSheet(buildReport(shifts, period, tz, null));
+    expect(sheet.rows[4][1]).toMatchObject({ text: "" });
+    expect(sheet.rows[6][1]).toMatchObject({ text: "" });
+    expect(sheet.rows[4][1]!.n).toBeUndefined();
+  });
+
   it("TSV strips tabs/newlines so columns stay aligned", () => {
-    const r = buildReport(shifts, period, tz, null);
-    const lines = toTSV(r).split("\n");
-    expect(lines[0]).toBe("Date\tClock In\tClock Out\tHours\tDescription");
-    expect(lines[2].split("\t")).toHaveLength(5);
-    expect(lines[2]).toContain('Client call, "fixes" with tab');
-    expect(lines.at(-1)).toBe("\t\tTOTAL\t7.00\t");
+    const sheet = toSheet(buildReport(shifts, period, tz, null), "Daniel Johnson");
+    const lines = toTSV(sheet).split("\n");
+    expect(lines[0]).toBe("Aug 31 - Sep 13, 2026");
+    expect(lines[1]).toBe("Daniel Johnson");
+    expect(lines[8]).toBe("Date\tClock in\tClock out\tHours\tDescription");
+    expect(lines[10].split("\t")).toHaveLength(5);
+    expect(lines[10]).toContain('Client call, "fixes" with tab');
   });
 
   it("CSV quotes fields with commas and quotes", () => {
-    const r = buildReport(shifts, period, tz, 40);
-    const csv = toCSV(r);
+    const csv = toCSV(toSheet(buildReport(shifts, period, tz, 40)));
+    const lines = csv.split("\r\n");
+    expect(lines[6]).toBe("Total Amount,$280.00,,Payment Notes,");
     expect(csv).toContain('"Client call, ""fixes""\twith tab"');
-    expect(csv.split("\r\n").at(-1)).toBe(",,TOTAL,7.00,$280.00");
   });
 
-  it("text report has a title and aligned columns", () => {
-    const txt = toText(buildReport(shifts, period, tz, null));
-    expect(txt.split("\n")[0]).toBe("Pay period Aug 31 – Sep 13, 2026");
+  it("HTML carries bold, alignment and per-side borders", () => {
+    const html = toHTML(toSheet(buildReport(shifts, period, tz, 40), "A <b> & B"));
+    expect(html).toContain('<td style="font-weight:bold">Aug 31 - Sep 13, 2026</td>');
+    expect(html).toContain("A &lt;b&gt; &amp; B");
+    expect(html).toContain('<td style="border-top:1px solid #000;border-left:1px solid #000">Rate</td>');
+    expect(html).toContain('<td style="text-align:right;border-top:1px solid #000;border-right:1px solid #000">40.00</td>');
+    // every row is padded to the full width so columns stay aligned on paste
+    const rows = html.match(/<tr>/g)!;
+    expect(rows).toHaveLength(12);
+    expect(html.split("<tr>")[3].match(/<td/g)).toHaveLength(5);
+  });
+
+  it("text report has a title, name and aligned columns", () => {
+    const txt = toText(buildReport(shifts, period, tz, null), "Daniel Johnson");
+    expect(txt.split("\n").slice(0, 2)).toEqual(["Pay period Aug 31 – Sep 13, 2026", "Daniel Johnson"]);
     expect(txt).toMatch(/TOTAL\s+7\.00/);
   });
 });

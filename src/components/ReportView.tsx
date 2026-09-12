@@ -13,6 +13,7 @@ import { Toast } from "./Toast";
 interface ReportResponse {
   report: Report;
   tsv: string;
+  html: string;
   text: string;
   csv: string;
 }
@@ -47,7 +48,27 @@ export function ReportView() {
   async function copy(text: string, what: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setToast(`${what} copied — paste into Google Sheets`);
+      setToast(`${what} copied`);
+    } catch {
+      setToast("Couldn't copy. Long-press the table to select it instead.");
+    }
+  }
+
+  /** Rich copy: text/html keeps bold + outlines in Sheets/Excel; text/plain (TSV) is the fallback. */
+  async function copySheet() {
+    if (!data) return;
+    try {
+      if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([data.html], { type: "text/html" }),
+            "text/plain": new Blob([data.tsv], { type: "text/plain" }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(data.tsv);
+      }
+      setToast("Table copied — paste into cell A1 of a sheet");
     } catch {
       setToast("Couldn't copy. Long-press the table to select it instead.");
     }
@@ -68,11 +89,11 @@ export function ReportView() {
     copy(data.text, "Report");
   }
 
-  function download() {
+  function download(format: "xlsx" | "csv") {
     if (!data) return;
     const p = data.report.period;
     // Served by the API so it works even where blob downloads are blocked.
-    window.open(`/api/report?start=${p.start}&format=csv&token=${encodeURIComponent(getSecret())}`, "_blank");
+    window.open(`/api/report?start=${p.start}&format=${format}&token=${encodeURIComponent(getSecret())}`, "_blank");
   }
 
   if (!data) {
@@ -92,10 +113,11 @@ export function ReportView() {
       <Toast message={toast} onDone={() => setToast(null)} />
 
       <header className="mb-3 flex flex-wrap items-center gap-2">
-        <button type="button" className="btn-secondary px-2" onClick={() => go(-1)} aria-label="Previous period">
+        <button type="button" className="btn-nav" onClick={() => go(-1)} aria-label="Previous period">
           ‹
         </button>
-        <button type="button" className="btn-secondary px-2" onClick={() => go(1)} aria-label="Next period">
+        <h1 className="text-lg font-semibold">{r.title}</h1>
+        <button type="button" className="btn-nav" onClick={() => go(1)} aria-label="Next period">
           ›
         </button>
         {start && (
@@ -103,7 +125,6 @@ export function ReportView() {
             Current
           </button>
         )}
-        <h1 className="text-lg font-semibold">{r.title}</h1>
       </header>
 
       <div className="card mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
@@ -124,7 +145,7 @@ export function ReportView() {
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2">
-        <button type="button" className="btn-primary" onClick={() => copy(data.tsv, "Table")}>
+        <button type="button" className="btn-primary" onClick={copySheet}>
           Copy for Google Sheets
         </button>
         <button type="button" className="btn-secondary" onClick={() => copy(data.text, "Text")}>
@@ -133,7 +154,10 @@ export function ReportView() {
         <button type="button" className="btn-secondary" onClick={share}>
           Share…
         </button>
-        <button type="button" className="btn-secondary" onClick={download}>
+        <button type="button" className="btn-secondary" onClick={() => download("xlsx")}>
+          Excel
+        </button>
+        <button type="button" className="btn-secondary" onClick={() => download("csv")}>
           CSV
         </button>
       </div>
@@ -193,8 +217,9 @@ export function ReportView() {
       </div>
 
       <p className="mt-3 text-xs text-muted">
-        Tip: &ldquo;Copy for Google Sheets&rdquo; puts tab-separated rows on the clipboard — paste into a sheet and each
-        value lands in its own cell.
+        Tip: &ldquo;Copy for Google Sheets&rdquo; copies the full timesheet layout (title, summary boxes, shift table) with
+        bold and outlines — paste into cell A1. &ldquo;Excel&rdquo; downloads the same layout as a formatted .xlsx; CSV is
+        plain values only.
       </p>
     </div>
   );

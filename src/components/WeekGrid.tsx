@@ -76,8 +76,9 @@ export function WeekGrid({ weekStart, today, shifts, tz, dayStartHour, dayEndHou
       >
         {/* Header */}
         <div className="sticky left-0 z-20 border-b border-border bg-surface" />
-        {days.map((d) => {
+        {days.map((d, i) => {
           const isToday = d === today;
+          const ms = dayTotals[i];
           return (
             <div
               key={d}
@@ -91,6 +92,9 @@ export function WeekGrid({ weekStart, today, shifts, tz, dayStartHour, dayEndHou
                 }`}
               >
                 {fmtLocalDate(d, "d")}
+              </div>
+              <div className={`mt-1 text-xs font-medium ${ms ? "" : "text-muted/60"}`}>
+                {ms ? `${(ms / 3_600_000).toFixed(2)} hrs` : "–"}
               </div>
             </div>
           );
@@ -164,20 +168,6 @@ export function WeekGrid({ weekStart, today, shifts, tz, dayStartHour, dayEndHou
           </div>
         ))}
 
-        {/* Footer totals */}
-        <div className="sticky left-0 z-20 border-t border-border bg-surface px-1 py-1.5 text-[10px] text-muted">
-          Total
-        </div>
-        {dayTotals.map((ms, i) => (
-          <div
-            key={days[i]}
-            className={`border-l border-t border-border px-1 py-1.5 text-center text-xs font-medium ${
-              ms ? "" : "text-muted/60"
-            }`}
-          >
-            {ms ? (ms / 3_600_000).toFixed(2) : "–"}
-          </div>
-        ))}
       </div>
       <div className="border-t border-border px-3 py-2 text-right text-sm">
         Week total: <span className="font-semibold">{(weekTotal / 3_600_000).toFixed(2)} hrs</span>

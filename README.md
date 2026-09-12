@@ -4,7 +4,7 @@ A personal time tracker for 1099 work:
 
 - **iPhone Shortcut** clocks you in/out with one tap and asks what you worked on.
 - **PWA** (Next.js on Vercel) shows a weekly calendar of shifts, pay-period totals, and
-  a report you can copy straight into Google Sheets, share, or download as CSV.
+  a formatted timesheet you can paste straight into Google Sheets, share, or download as Excel/CSV.
 - **Reminder** automation nudges you on the last day of each pay period.
 - Runs entirely on free tiers (Vercel Hobby + Neon Postgres).
 

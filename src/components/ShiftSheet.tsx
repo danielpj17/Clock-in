@@ -72,9 +72,9 @@ export function ShiftSheet({ shift, defaultStart, tz, onClose, onSaved }: Props)
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div
-        className="card w-full max-w-lg rounded-b-none p-4 safe-bottom shadow-2xl"
+        className="card w-full max-w-lg p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -103,10 +103,15 @@ export function ShiftSheet({ shift, defaultStart, tz, onClose, onSaved }: Props)
           </div>
         </div>
 
-        <label className="mt-2 flex items-center gap-2 text-sm text-muted">
-          <input type="checkbox" checked={stillOpen} onChange={(e) => setStillOpen(e.target.checked)} />
-          Still clocked in
-        </label>
+        <div className="mt-2 flex items-center gap-2 text-sm text-muted">
+          <input
+            type="checkbox"
+            aria-label="Still clocked in"
+            checked={stillOpen}
+            onChange={(e) => setStillOpen(e.target.checked)}
+          />
+          <span>Still clocked in</span>
+        </div>
 
         <div className="mt-3">
           <label className="label">What did you work on?</label>

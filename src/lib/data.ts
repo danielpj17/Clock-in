@@ -13,6 +13,7 @@ function toSettings(r: SettingsRow): AppSettings {
     periodAnchor: r.periodAnchor,
     periodLengthDays: r.periodLengthDays,
     hourlyRate: r.hourlyRate == null ? null : Number(r.hourlyRate),
+    employeeName: r.employeeName,
     timezone: r.timezone,
     dayStartHour: r.dayStartHour,
     dayEndHour: r.dayEndHour,
@@ -53,6 +54,7 @@ export async function updateSettings(patch: Partial<AppSettings>): Promise<AppSe
       ...(patch.hourlyRate !== undefined && {
         hourlyRate: patch.hourlyRate == null ? null : patch.hourlyRate.toFixed(2),
       }),
+      ...(patch.employeeName !== undefined && { employeeName: patch.employeeName }),
       ...(patch.timezone !== undefined && { timezone: patch.timezone }),
       ...(patch.dayStartHour !== undefined && { dayStartHour: patch.dayStartHour }),
       ...(patch.dayEndHour !== undefined && { dayEndHour: patch.dayEndHour }),

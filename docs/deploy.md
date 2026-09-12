@@ -83,7 +83,7 @@ See [shortcut.md](./shortcut.md).
   by Vercel authentication and will reject API calls.
 - **Neon Free scales to zero.** The first request after a few minutes idle takes
   0.5-1 s while it wakes up; the Shortcut just waits. Everything else is instant.
-- **Backups:** the report page's CSV button, or `/api/report?format=csv` for any
+- **Backups:** the report page's Excel/CSV buttons, or `/api/report?format=xlsx` (or `csv`) for any
   period, is your export. Neon Free also keeps point-in-time restore history.
 - **Local development** needs no database: with `DATABASE_URL` unset, the app
   uses an embedded Postgres (PGlite) stored in `./.pglite`. Run `npm run dev`, then

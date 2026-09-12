@@ -17,6 +17,7 @@ export function SettingsView() {
     periodAnchor: string;
     periodLengthDays: string;
     hourlyRate: string;
+    employeeName: string;
     timezone: string;
     dayStartHour: string;
     dayEndHour: string;
@@ -35,6 +36,7 @@ export function SettingsView() {
         periodAnchor: res.settings.periodAnchor,
         periodLengthDays: String(res.settings.periodLengthDays),
         hourlyRate: res.settings.hourlyRate == null ? "" : String(res.settings.hourlyRate),
+        employeeName: res.settings.employeeName,
         timezone: res.settings.timezone,
         dayStartHour: String(res.settings.dayStartHour),
         dayEndHour: String(res.settings.dayEndHour),
@@ -62,6 +64,7 @@ export function SettingsView() {
           periodAnchor: form.periodAnchor,
           periodLengthDays: Number(form.periodLengthDays),
           hourlyRate: form.hourlyRate.trim() === "" ? null : Number(form.hourlyRate),
+          employeeName: form.employeeName.trim(),
           timezone: form.timezone,
           dayStartHour: Number(form.dayStartHour),
           dayEndHour: Number(form.dayEndHour),
@@ -135,6 +138,10 @@ export function SettingsView() {
         )}
 
         <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Your name</label>
+            <input className="input" type="text" maxLength={100} placeholder="shown on exported timesheets" value={form.employeeName} onChange={f("employeeName")} />
+          </div>
           <div>
             <label className="label">Hourly rate ($)</label>
             <input className="input" type="number" min={0} step="0.01" placeholder="optional" value={form.hourlyRate} onChange={f("hourlyRate")} />

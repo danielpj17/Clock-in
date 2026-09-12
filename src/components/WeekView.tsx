@@ -98,11 +98,15 @@ export function WeekView() {
       <Toast message={toast} onDone={() => setToast(null)} />
 
       <header className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1">
-          <button type="button" className="btn-secondary px-2" onClick={() => go(-1)} aria-label="Previous week">
+        <div className="flex items-center gap-2">
+          <button type="button" className="btn-nav" onClick={() => go(-1)} aria-label="Previous week">
             ‹
           </button>
-          <button type="button" className="btn-secondary px-2" onClick={() => go(1)} aria-label="Next week">
+          <h1 className="text-lg font-semibold">
+            {fmtDateRange(weekStart, addDays(weekStart, 6))}
+            <span className="ml-1 text-muted">{weekStart.slice(0, 4)}</span>
+          </h1>
+          <button type="button" className="btn-nav" onClick={() => go(1)} aria-label="Next week">
             ›
           </button>
           {!isThisWeek && (
@@ -111,10 +115,6 @@ export function WeekView() {
             </button>
           )}
         </div>
-        <h1 className="text-lg font-semibold">
-          {fmtDateRange(weekStart, addDays(weekStart, 6))}
-          <span className="ml-1 text-muted">{weekStart.slice(0, 4)}</span>
-        </h1>
         <button type="button" className="btn-secondary ml-auto" onClick={() => setEditing("new")}>
           + Add shift
         </button>

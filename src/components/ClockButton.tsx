@@ -61,8 +61,8 @@ export function ClockButton({ open, now, onChanged }: Props) {
       </div>
 
       {asking && open && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40" onClick={() => setAsking(false)}>
-          <div className="card w-full max-w-lg rounded-b-none p-4 safe-bottom shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={() => setAsking(false)}>
+          <div className="card w-full max-w-lg p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-base font-semibold">Clock out</h2>
             <p className="mt-1 text-sm text-muted">
               You&apos;ve been clocked in for {fmtDuration(now - Date.parse(open.clockIn))}. What did you work on?
