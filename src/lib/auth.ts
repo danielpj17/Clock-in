@@ -18,7 +18,8 @@ export function requireAuth(req: Request): NextResponse | null {
     return NextResponse.json({ error: "Server is missing APP_SECRET" }, { status: 500 });
   }
   const header = req.headers.get("authorization") ?? "";
-  const bearer = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  // "Bearer" is matched case-insensitively: iOS autocorrect likes to lowercase it.
+  const bearer = /^bearer\s+/i.test(header) ? header.replace(/^bearer\s+/i, "").trim() : "";
   const query = new URL(req.url).searchParams.get("token") ?? "";
   const provided = bearer || query;
   if (!provided || !safeEqual(provided, secret)) {

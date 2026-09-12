@@ -11,6 +11,36 @@ You need:
 
 ---
 
+## Shortcuts app UI tips (read first)
+
+- **Typing after a variable**: tap the field just to the right of the blue pill and
+  keep typing. `[URL]/api/status` is one pill followed by plain text.
+- **Inserting a variable**: with the keyboard open, the bar above it lists variables
+  (`Text`, `Contents of URL`, `Provided Input`, `Dictionary Value`...). Tap one to
+  insert it. If it is not listed, tap **Select Variable** and then tap the action
+  whose output you want.
+- **Renaming**: tap a pill, then **Rename**. Rename the URL text to `URL` and the
+  secret text to `Secret` so you can tell the two `Text` outputs apart.
+- **Headers**: tap **Headers**, then the empty **Key** field, type `Authorization`;
+  tap the value field, type `Bearer ` (with a trailing space) and insert `Secret`.
+- **POST body**: **Request Body** only appears after you set **Method** to POST and
+  tap **Show More**. Choose **JSON**, then **Add new field**, pick **Text**, and set
+  key/value.
+- **Menu labels**: in **Choose from Menu**, tap the default option names to rename
+  them to `Clock in` / `Clock out`. Actions you add while an option is selected
+  land inside that branch.
+- **Dictionary keys are plain text**: in *Get Dictionary Value*, the **Key** field
+  (`status`, `message`, `error`...) is typed as a word, never inserted as a variable.
+  The **Dictionary** field is where the variable goes (`Status`, `Result`).
+- **`Result`, not `Menu Result`**: after *End Menu*, read `message` from the `Result`
+  variable you set inside each branch. `Menu Result` is only the option name you tapped.
+- **Capital B in `Bearer`**: the server accepts `bearer` too, but keep it consistent.
+- **Test as you go**: tap the play button at the bottom; a red banner shows which
+  action failed.
+
+Build the minimal version first (steps 1-8 plus 11-12 below, skipping the
+`state` check in the clock-out branch). Once it works, add the rest.
+
 ## 1. "Clock": clock in / clock out
 
 What it does: asks *Clock in* or *Clock out*; on clock-out asks what you worked
