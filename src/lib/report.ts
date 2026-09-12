@@ -81,9 +81,15 @@ export function buildReport(
 export type CellFormat = "date" | "time" | "hours" | "rate" | "money";
 
 export interface SheetCell {
-  /** Display text; numeric exports (xlsx) use `n` instead when present. */
+  /**
+   * Display text; numeric exports (xlsx) use `n` instead when present. For a formula
+   * cell this is the A1-style formula itself ("=SUM(D10:D12)") — Google Sheets and Excel
+   * both evaluate pasted/imported text that starts with "=".
+   */
   text: string;
   n?: number;
+  /** A1-style formula, e.g. "=B5*B6"; `n` holds the pre-computed result. */
+  formula?: string;
   format?: CellFormat;
   bold?: boolean;
   border?: { top?: boolean; bottom?: boolean; left?: boolean; right?: boolean };
@@ -141,6 +147,12 @@ export function toSheet(r: Report, employeeName = ""): Sheet {
   const t = (text: string, extra: Partial<SheetCell> = {}): SheetCell => ({ text, ...extra });
   const num = (n: number | null, format: CellFormat, text = n == null ? "" : n.toFixed(2)): SheetCell =>
     n == null ? { text: "", format, align: "right" } : { text, n, format, align: "right" };
+  const formula = (f: string, n: number, format: CellFormat): SheetCell => ({ text: f, n, formula: f, format, align: "right" });
+
+  // 1-based sheet rows of the shift table body (header is row 9). SUM over an empty
+  // range is fine, so a period with no shifts still gets a working formula.
+  const firstShift = 10;
+  const lastShift = Math.max(firstShift, firstShift + r.rows.length - 1);
 
   const rows: SheetRow[] = [
     [t(title, { bold: true })],
@@ -148,8 +160,8 @@ export function toSheet(r: Report, employeeName = ""): Sheet {
     [],
     [t("Employee Summary", { bold: true }), null, null, t("Employer Payment", { bold: true })],
     [t("Rate"), num(r.rate, "rate"), null, t("Payment Status"), t("")],
-    [t("Total Hours"), num(hours, "hours"), null, t("Payment Date"), t("")],
-    [t("Total Amount"), num(r.pay, "money", r.pay == null ? "" : fmtMoney(r.pay)), null, t("Payment Notes"), t("")],
+    [t("Total Hours"), formula(`=SUM(D${firstShift}:D${lastShift})`, hours, "hours"), null, t("Payment Date"), t("")],
+    [t("Total Amount"), formula("=B5*B6", r.pay ?? 0, "money"), null, t("Payment Notes"), t("")],
     [],
     TABLE_HEADER.map((h) => t(h, { bold: true })),
     ...r.rows.map<SheetRow>((row) => [
@@ -179,14 +191,34 @@ export function toCSV(sheet: Sheet): string {
   return sheet.rows.map((row) => row.map((c) => q(text(c))).join(",")).join("\r\n");
 }
 
+/** "B5" → 0-based [row, col]. */
+function a1ToRC(ref: string): [number, number] {
+  const m = /^\$?([A-Z]+)\$?(\d+)$/.exec(ref)!;
+  const col = [...m[1]].reduce((a, ch) => a * 26 + (ch.charCodeAt(0) - 64), 0) - 1;
+  return [Number(m[2]) - 1, col];
+}
+
+/**
+ * Rewrite the A1 references in a formula as R1C1 offsets from the cell at (row, col),
+ * which is how Google Sheets' own clipboard HTML expresses formulas.
+ */
+export function toR1C1(formula: string, row: number, col: number): string {
+  return formula.replace(/\$?[A-Z]+\$?\d+/g, (ref) => {
+    const [r, c] = a1ToRC(ref);
+    return `R[${r - row}]C[${c - col}]`;
+  });
+}
+
 /**
  * An HTML table for the clipboard. Google Sheets and Excel both keep inline bold,
- * borders and alignment when pasting text/html.
+ * borders and alignment when pasting text/html. Formula cells carry the "=..." text
+ * (which both apps evaluate on paste) plus Sheets' data-sheets-* attributes so the
+ * references stay relative wherever the paste lands.
  */
 export function toHTML(sheet: Sheet): string {
   const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const width = Math.max(...sheet.rows.map((r) => r.length));
-  const style = (c: SheetCell | null) => {
+  const attrs = (c: SheetCell | null, row: number, col: number) => {
     if (!c) return "";
     const s: string[] = [];
     if (c.bold) s.push("font-weight:bold");
@@ -194,11 +226,16 @@ export function toHTML(sheet: Sheet): string {
     for (const side of ["top", "bottom", "left", "right"] as const) {
       if (c.border?.[side]) s.push(`border-${side}:1px solid #000`);
     }
-    return s.length ? ` style="${s.join(";")}"` : "";
+    let a = s.length ? ` style="${s.join(";")}"` : "";
+    if (c.formula) {
+      // {"1":3,"3":n} is Sheets' encoding for a numeric cached value.
+      a += ` data-sheets-value='{"1":3,"3":${c.n ?? 0}}' data-sheets-formula="${esc(toR1C1(c.formula, row, col))}"`;
+    }
+    return a;
   };
-  const tr = (row: SheetRow) => {
+  const tr = (row: SheetRow, r: number) => {
     const cells = Array.from({ length: width }, (_, i) => row[i] ?? null);
-    return `<tr>${cells.map((c) => `<td${style(c)}>${esc(text(c))}</td>`).join("")}</tr>`;
+    return `<tr>${cells.map((c, i) => `<td${attrs(c, r, i)}>${esc(text(c))}</td>`).join("")}</tr>`;
   };
   return `<table>${sheet.rows.map(tr).join("")}</table>`;
 }

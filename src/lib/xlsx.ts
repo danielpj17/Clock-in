@@ -22,8 +22,9 @@ export async function toXLSX(sheet: Sheet): Promise<Buffer> {
     row.forEach((cell, c) => {
       if (!cell) return;
       const x = ws.getCell(r + 1, c + 1);
-      x.value = cell.n ?? (cell.text === "" ? null : cell.text);
-      if (cell.format && cell.n != null) x.numFmt = NUM_FMT[cell.format];
+      if (cell.formula) x.value = { formula: cell.formula.replace(/^=/, ""), result: cell.n };
+      else x.value = cell.n ?? (cell.text === "" ? null : cell.text);
+      if (cell.format && (cell.n != null || cell.formula)) x.numFmt = NUM_FMT[cell.format];
       if (cell.bold) x.font = { bold: true };
       if (cell.align) x.alignment = { horizontal: cell.align };
       if (cell.border) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { durationMs, fmtDuration, fmtHours, isValidShiftRange, splitShiftByDay, type Shift } from "../hours";
 import { periodFor } from "../periods";
-import { buildReport, toCSV, toHTML, toSheet, toText, toTSV } from "../report";
+import { buildReport, toCSV, toHTML, toR1C1, toSheet, toText, toTSV } from "../report";
 
 const tz = "America/Chicago";
 const s = { periodAnchor: "2026-08-31", periodLengthDays: 14 };
@@ -68,8 +68,15 @@ describe("report", () => {
     expect(sheet.rows[3][0]).toMatchObject({ text: "Employee Summary", bold: true });
     expect(sheet.rows[3][3]).toMatchObject({ text: "Employer Payment", bold: true });
     expect(sheet.rows[4].slice(0, 2)).toMatchObject([{ text: "Rate" }, { text: "25.00", n: 25, format: "rate" }]);
-    expect(sheet.rows[5].slice(0, 2)).toMatchObject([{ text: "Total Hours" }, { text: "7.00", n: 7 }]);
-    expect(sheet.rows[6].slice(0, 2)).toMatchObject([{ text: "Total Amount" }, { text: "$175.00", n: 175, format: "money" }]);
+    // 3 shifts → table body is rows 10–12
+    expect(sheet.rows[5].slice(0, 2)).toMatchObject([
+      { text: "Total Hours" },
+      { text: "=SUM(D10:D12)", formula: "=SUM(D10:D12)", n: 7, format: "hours" },
+    ]);
+    expect(sheet.rows[6].slice(0, 2)).toMatchObject([
+      { text: "Total Amount" },
+      { text: "=B5*B6", formula: "=B5*B6", n: 175, format: "money" },
+    ]);
     expect(sheet.rows[4][3]).toMatchObject({ text: "Payment Status" });
     expect(sheet.rows[8].map((c) => c?.text)).toEqual(["Date", "Clock in", "Clock out", "Hours", "Description"]);
     expect(sheet.rows[9]).toMatchObject([
@@ -95,11 +102,22 @@ describe("report", () => {
     expect(sheet.rows[9][0]!.border).toBeUndefined();
   });
 
-  it("blank rate leaves the money cells empty", () => {
+  it("blank rate leaves the rate cell empty but keeps the amount formula", () => {
     const sheet = toSheet(buildReport(shifts, period, tz, null));
     expect(sheet.rows[4][1]).toMatchObject({ text: "" });
-    expect(sheet.rows[6][1]).toMatchObject({ text: "" });
     expect(sheet.rows[4][1]!.n).toBeUndefined();
+    expect(sheet.rows[6][1]).toMatchObject({ formula: "=B5*B6", n: 0 });
+  });
+
+  it("an empty period still gets a valid SUM range", () => {
+    const sheet = toSheet(buildReport([], period, tz, 25));
+    expect(sheet.rows[5][1]).toMatchObject({ formula: "=SUM(D10:D10)", n: 0 });
+  });
+
+  it("converts A1 formulas to R1C1 offsets", () => {
+    expect(toR1C1("=SUM(D10:D12)", 5, 1)).toBe("=SUM(R[4]C[2]:R[6]C[2])");
+    expect(toR1C1("=B5*B6", 6, 1)).toBe("=R[-2]C[0]*R[-1]C[0]");
+    expect(toR1C1("=$AA$1", 0, 0)).toBe("=R[0]C[26]");
   });
 
   it("TSV strips tabs/newlines so columns stay aligned", () => {
@@ -115,8 +133,17 @@ describe("report", () => {
   it("CSV quotes fields with commas and quotes", () => {
     const csv = toCSV(toSheet(buildReport(shifts, period, tz, 40)));
     const lines = csv.split("\r\n");
-    expect(lines[6]).toBe("Total Amount,$280.00,,Payment Notes,");
+    expect(lines[5]).toBe("Total Hours,=SUM(D10:D12),,Payment Date,");
+    expect(lines[6]).toBe("Total Amount,=B5*B6,,Payment Notes,");
     expect(csv).toContain('"Client call, ""fixes""\twith tab"');
+  });
+
+  it("HTML formula cells carry Sheets' relative-formula attributes", () => {
+    const html = toHTML(toSheet(buildReport(shifts, period, tz, 40)));
+    expect(html).toContain(
+      `data-sheets-value='{"1":3,"3":7}' data-sheets-formula="=SUM(R[4]C[2]:R[6]C[2])">=SUM(D10:D12)</td>`,
+    );
+    expect(html).toContain(`data-sheets-value='{"1":3,"3":280}' data-sheets-formula="=R[-2]C[0]*R[-1]C[0]">=B5*B6</td>`);
   });
 
   it("HTML carries bold, alignment and per-side borders", () => {
